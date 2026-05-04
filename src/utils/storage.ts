@@ -1,25 +1,26 @@
 import type { ListingStatus, SavedListing } from '../types/listing'
 
 const STORAGE_KEY = 'vinted-listing-assistant-history'
+const EMPTY_HISTORY: SavedListing[] = []
 
 const canUseStorage = () => typeof window !== 'undefined'
 
 export function getStoredListings() {
   if (!canUseStorage()) {
-    return [] as SavedListing[]
+    return EMPTY_HISTORY
   }
 
   try {
     const rawValue = window.localStorage.getItem(STORAGE_KEY)
 
     if (!rawValue) {
-      return [] as SavedListing[]
+      return EMPTY_HISTORY
     }
 
     const parsedValue = JSON.parse(rawValue)
-    return Array.isArray(parsedValue) ? (parsedValue as SavedListing[]) : []
+    return Array.isArray(parsedValue) ? (parsedValue as SavedListing[]) : EMPTY_HISTORY
   } catch {
-    return [] as SavedListing[]
+    return EMPTY_HISTORY
   }
 }
 

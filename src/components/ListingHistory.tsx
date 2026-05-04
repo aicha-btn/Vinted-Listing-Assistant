@@ -1,5 +1,6 @@
 import { statusOptions } from '../data/templates'
 import type { ListingStatus, SavedListing } from '../types/listing'
+import { formatSavedDate } from '../utils/listingFormatting'
 
 interface ListingHistoryProps {
   entries: SavedListing[]
@@ -8,12 +9,6 @@ interface ListingHistoryProps {
   onStatusChange: (id: string, status: ListingStatus) => void
   onCreateNew: () => void
 }
-
-const formatDate = (value: string) =>
-  new Intl.DateTimeFormat('fr-FR', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(value))
 
 export default function ListingHistory({
   entries,
@@ -47,7 +42,9 @@ export default function ListingHistory({
               <div className="history-card-head">
                 <div>
                   <h3>{entry.listing.title}</h3>
-                  <p className="history-meta">Sauvegardée le {formatDate(entry.savedAt)}</p>
+                  <p className="history-meta">
+                    Sauvegardée le {formatSavedDate(entry.savedAt)}
+                  </p>
                 </div>
 
                 <select

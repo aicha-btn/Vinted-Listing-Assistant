@@ -13,7 +13,7 @@ interface GeneratedListingProps {
   aiStatus: AiResultStatus
   aiError: string | null
   activeVariant: 'rules' | 'ai'
-  onCopy: (action: string, value: string) => void
+  onCopy: (value: string) => void
   onSave: () => void
   onImproveWithAi: () => void
   onSelectVariant: (variant: 'rules' | 'ai') => void
@@ -201,7 +201,7 @@ export default function GeneratedListingPanel({
               <h3>Titre</h3>
               <CopyIconButton
                 label="Copier le titre"
-                onClick={() => onCopy('title', displayedListing.title)}
+                onClick={() => onCopy(displayedListing.title)}
               />
             </div>
             <p className="formatted-text strong-text">{displayedListing.title}</p>
@@ -212,9 +212,7 @@ export default function GeneratedListingPanel({
               <h3>Description courte</h3>
               <CopyIconButton
                 label="Copier la description courte"
-                onClick={() =>
-                  onCopy('short-description', displayedListing.shortDescription)
-                }
+                onClick={() => onCopy(displayedListing.shortDescription)}
               />
             </div>
             <p className="formatted-text">{displayedListing.shortDescription}</p>
@@ -225,12 +223,7 @@ export default function GeneratedListingPanel({
               <h3>Description détaillée</h3>
               <CopyIconButton
                 label="Copier la description détaillée"
-                onClick={() =>
-                  onCopy(
-                    'detailed-description',
-                    displayedListing.detailedDescription,
-                  )
-                }
+                onClick={() => onCopy(displayedListing.detailedDescription)}
               />
             </div>
             <p className="formatted-text">{displayedListing.detailedDescription}</p>
@@ -241,7 +234,7 @@ export default function GeneratedListingPanel({
               <h3>Hashtags</h3>
               <CopyIconButton
                 label="Copier les hashtags"
-                onClick={() => onCopy('hashtags', displayedListing.hashtags.join(' '))}
+                onClick={() => onCopy(displayedListing.hashtags.join(' '))}
               />
             </div>
             <p className="tag-cloud">{displayedListing.hashtags.join(' ')}</p>
@@ -252,7 +245,7 @@ export default function GeneratedListingPanel({
               <h3>Annonce complète</h3>
               <CopyIconButton
                 label="Copier l’annonce complète"
-                onClick={() => onCopy('full', displayedListing.fullText)}
+                onClick={() => onCopy(displayedListing.fullText)}
               />
             </div>
             <p className="formatted-text">
@@ -267,12 +260,12 @@ export default function GeneratedListingPanel({
           <Checklist
             title="Conseils photo"
             items={displayedListing.photoTips}
-            onCopy={(value) => onCopy('photo-tips', value)}
+            onCopy={onCopy}
           />
           <Checklist
             title="Checklist photo"
             items={displayedListing.photoChecklist}
-            onCopy={(value) => onCopy('photo-checklist', value)}
+            onCopy={onCopy}
           />
         </div>
       ) : null}
@@ -296,7 +289,6 @@ export default function GeneratedListingPanel({
                   label="Copier le prix conseillé"
                   onClick={() =>
                     onCopy(
-                      'price-estimate',
                       `Prix conseillé : ${displayedListing.priceEstimate.suggestedMin} € - ${displayedListing.priceEstimate.suggestedMax} €\n${displayedListing.priceEstimate.advice}`,
                     )
                   }
@@ -308,13 +300,13 @@ export default function GeneratedListingPanel({
 
           <QualityScore
             result={displayedListing.qualityScore}
-            onCopy={(value) => onCopy('quality-score', value)}
+            onCopy={onCopy}
           />
 
           <Checklist
             title="Checklist avant publication"
             items={displayedListing.publicationChecklist}
-            onCopy={(value) => onCopy('publication-checklist', value)}
+            onCopy={onCopy}
           />
         </div>
       ) : null}

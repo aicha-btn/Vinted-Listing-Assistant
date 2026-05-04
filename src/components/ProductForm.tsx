@@ -7,12 +7,11 @@ import {
   styleOptions,
 } from '../data/templates'
 import type { ProductFormData } from '../types/listing'
-
-type FormErrors = Partial<Record<keyof ProductFormData, string>>
+import type { ProductFormErrors } from '../utils/formValidation'
 
 interface ProductFormProps {
   formData: ProductFormData
-  errors: FormErrors
+  errors: ProductFormErrors
   onChange: (field: keyof ProductFormData, value: string) => void
   onSubmit: () => void
   onOpenHistory: () => void

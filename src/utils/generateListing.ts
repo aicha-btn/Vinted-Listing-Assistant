@@ -12,14 +12,65 @@ import type { GeneratedListing, ProductFormData } from '../types/listing'
 import { calculateScore } from './calculateScore'
 import { estimatePrice } from './estimatePrice'
 import { generateHashtags } from './generateHashtags'
-
-const capitalize = (value: string) =>
-  value ? value.charAt(0).toUpperCase() + value.slice(1) : value
-
-const compactText = (value: string) => value.replace(/\s+/g, ' ').trim()
+import { buildFullListingText } from './listingFormatting'
+import { capitalize, compactText } from './text'
 
 const formatPrice = (value: string) =>
   Number(value) > 0 ? `${Number(value)} €` : 'non renseigné'
+
+const buildTitle = (
+  formData: ProductFormData,
+  conditionLabel: string,
+  titleAccent: string,
+) => {
+  const titleCore = compactText(
+    [
+      capitalize(formData.marque),
+      formData.typeArticle,
+      formData.taille ? `taille ${formData.taille}` : '',
+      formData.couleur,
+    ]
+      .filter(Boolean)
+      .join(' '),
+  )
+
+  return compactText([titleCore, conditionLabel, titleAccent].filter(Boolean).join(' - '))
+}
+
+const buildDetailedDescription = (
+  formData: ProductFormData,
+  labels: {
+    brand: string
+    category: string
+    season: string
+    style: string
+    condition: string
+  },
+  suggestedRangeText: string,
+  detailLead: string,
+  closing: string,
+) => {
+  const defectSentence = formData.defaut.trim()
+    ? `Défaut à noter : ${compactText(formData.defaut)}.`
+    : 'Aucun défaut notable à signaler.'
+  const materialSentence = formData.matiere.trim()
+    ? `Matière mentionnée : ${compactText(formData.matiere)}.`
+    : ''
+
+  return [
+    `${capitalize(formData.typeArticle)} ${labels.brand} dans la catégorie ${labels.category.toLowerCase()}.`,
+    `Couleur ${formData.couleur}, taille ${formData.taille}, style ${labels.style.toLowerCase()}, idéale pour ${labels.season.toLowerCase()}.`,
+    `État : ${labels.condition}. ${defectSentence}`,
+    materialSentence,
+    `Prix actuellement saisi : ${formatPrice(formData.prix)}.`,
+    suggestedRangeText,
+    detailLead,
+    closing,
+    closingSignature,
+  ]
+    .filter(Boolean)
+    .join('\n\n')
+}
 
 export function generateListing(formData: ProductFormData): GeneratedListing {
   const toneGuide = objectiveToneGuides[formData.objectif]
@@ -32,45 +83,25 @@ export function generateListing(formData: ProductFormData): GeneratedListing {
   const styleLabel = styleLabels[formData.style] || 'facile à porter'
   const priceEstimate = estimatePrice(formData)
   const hashtags = generateHashtags(formData)
-  const defectSentence = formData.defaut.trim()
-    ? `Défaut à noter : ${compactText(formData.defaut)}.`
-    : 'Aucun défaut notable à signaler.'
-  const materialSentence = formData.matiere.trim()
-    ? `Matière mentionnée : ${compactText(formData.matiere)}.`
-    : ''
-
-  const titleCore = compactText(
-    [
-      capitalize(formData.marque),
-      formData.typeArticle,
-      formData.taille ? `taille ${formData.taille}` : '',
-      formData.couleur,
-    ]
-      .filter(Boolean)
-      .join(' '),
-  )
-
-  const title = compactText(
-    [titleCore, conditionLabel, toneGuide.titleAccent].filter(Boolean).join(' - '),
-  )
+  const title = buildTitle(formData, conditionLabel, toneGuide.titleAccent)
 
   const shortDescription = compactText(
     `${capitalize(formData.typeArticle)} ${brandLabel} en ${formData.couleur}, taille ${formData.taille}. ${conditionLabel}. ${toneGuide.shortLead}`,
   )
 
-  const detailedDescription = [
-    `${capitalize(formData.typeArticle)} ${brandLabel} dans la catégorie ${categoryLabel.toLowerCase()}.`,
-    `Couleur ${formData.couleur}, taille ${formData.taille}, style ${styleLabel.toLowerCase()}, idéale pour ${seasonLabel.toLowerCase()}.`,
-    `État : ${conditionLabel}. ${defectSentence}`,
-    materialSentence,
-    `Prix actuellement saisi : ${formatPrice(formData.prix)}.`,
+  const detailedDescription = buildDetailedDescription(
+    formData,
+    {
+      brand: brandLabel,
+      category: categoryLabel,
+      season: seasonLabel,
+      style: styleLabel,
+      condition: conditionLabel,
+    },
     `Fourchette conseillée : ${priceEstimate.suggestedMin} € à ${priceEstimate.suggestedMax} €.`,
     toneGuide.detailLead,
     toneGuide.closing,
-    closingSignature,
-  ]
-    .filter(Boolean)
-    .join('\n\n')
+  )
 
   const photoTips = [
     ...(categoryPhotoTips[formData.categorie] ?? categoryPhotoTips.objets),
@@ -101,14 +132,13 @@ export function generateListing(formData: ProductFormData): GeneratedListing {
     hashtags,
   })
 
-  const fullText = [
-    `Titre : ${title}`,
-    `Description courte : ${shortDescription}`,
-    'Description détaillée :',
+  const fullText = buildFullListingText({
+    title,
+    shortDescription,
     detailedDescription,
-    `Hashtags : ${hashtags.join(' ')}`,
-    `Prix conseillé : ${priceEstimate.suggestedMin} € - ${priceEstimate.suggestedMax} €`,
-  ].join('\n\n')
+    hashtags,
+    priceEstimate,
+  })
 
   return {
     id: `listing-${Date.now()}`,

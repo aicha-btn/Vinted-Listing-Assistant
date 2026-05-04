@@ -19,7 +19,11 @@ export default function QualityScore({ result, onCopy }: QualityScoreProps) {
                 label="Copier le score qualité"
                 onClick={() =>
                   onCopy(
-                    [`Score qualité : ${result.score}/100`, `Niveau : ${result.label}`, ...result.details].join('\n'),
+                    [
+                      `Score qualité : ${result.score}/100`,
+                      `Niveau : ${result.label}`,
+                      ...result.details,
+                    ].join('\n'),
                   )
                 }
               />

@@ -1,11 +1,13 @@
+type WorkflowStep = 1 | 2 | 3
+
 interface StepNavigationProps {
-  currentStep: number
+  currentStep: WorkflowStep
   hasListing: boolean
   historyCount: number
-  onStepChange: (step: number) => void
+  onStepChange: (step: WorkflowStep) => void
 }
 
-const steps = [
+const steps: Array<{ id: WorkflowStep; title: string; helper: string }> = [
   {
     id: 1,
     title: 'Produit',

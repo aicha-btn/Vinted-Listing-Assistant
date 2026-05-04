@@ -12,6 +12,7 @@ import type {
   ProductFormData,
   SavedListing,
 } from './types/listing'
+import { validateProductForm, type ProductFormErrors } from './utils/formValidation'
 import { generateListing } from './utils/generateListing'
 import {
   addStoredListing,
@@ -20,47 +21,22 @@ import {
   updateStoredListingStatus,
 } from './utils/storage'
 
-type FormErrors = Partial<Record<keyof ProductFormData, string>>
-
-const requiredLabels: Partial<Record<keyof ProductFormData, string>> = {
-  typeArticle: 'Le type d’article est requis.',
-  categorie: 'La catégorie est requise.',
-  taille: 'La taille est requise.',
-  couleur: 'La couleur est requise.',
-  etat: 'L’état est requis.',
-}
-
-const validateFormData = (formData: ProductFormData) => {
-  const nextErrors: FormErrors = {}
-
-  ;(Object.keys(requiredLabels) as Array<keyof typeof requiredLabels>).forEach(
-    (field) => {
-      if (!formData[field]?.trim()) {
-        nextErrors[field] = requiredLabels[field]
-      }
-    },
-  )
-
-  if (formData.prix && Number(formData.prix) < 0) {
-    nextErrors.prix = 'Le prix ne peut pas être négatif.'
-  }
-
-  return nextErrors
-}
+type WorkflowStep = 1 | 2 | 3
+type ListingVariant = 'rules' | 'ai'
 
 function App() {
   const [formData, setFormData] = useState<ProductFormData>(initialProductFormData)
-  const [errors, setErrors] = useState<FormErrors>({})
+  const [errors, setErrors] = useState<ProductFormErrors>({})
   const [generatedListing, setGeneratedListing] = useState<GeneratedListing | null>(
     null,
   )
   const [aiImprovement, setAiImprovement] = useState<AiImprovementResult | null>(null)
   const [aiStatus, setAiStatus] = useState<AiResultStatus>('idle')
   const [aiError, setAiError] = useState<string | null>(null)
-  const [activeVariant, setActiveVariant] = useState<'rules' | 'ai'>('rules')
+  const [activeVariant, setActiveVariant] = useState<ListingVariant>('rules')
   const [history, setHistory] = useState<SavedListing[]>(() => getStoredListings())
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null)
-  const [currentStep, setCurrentStep] = useState(1)
+  const [currentStep, setCurrentStep] = useState<WorkflowStep>(1)
   const feedbackTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
@@ -95,8 +71,15 @@ function App() {
     }))
   }
 
+  const resetAiState = () => {
+    setAiImprovement(null)
+    setAiStatus('idle')
+    setAiError(null)
+    setActiveVariant('rules')
+  }
+
   const handleGenerate = () => {
-    const nextErrors = validateFormData(formData)
+    const nextErrors = validateProductForm(formData)
 
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors)
@@ -106,15 +89,12 @@ function App() {
 
     const listing = generateListing(formData)
     setGeneratedListing(listing)
-    setAiImprovement(null)
-    setAiStatus('idle')
-    setAiError(null)
-    setActiveVariant('rules')
+    resetAiState()
     setCurrentStep(2)
     showFeedback('Annonce générée.')
   }
 
-  const handleCopy = async (_action: string, value: string) => {
+  const handleCopy = async (value: string) => {
     try {
       await navigator.clipboard.writeText(value)
       showFeedback('Contenu copié.')
@@ -149,10 +129,7 @@ function App() {
   const handleLoad = (entry: SavedListing) => {
     setFormData(entry.formData)
     setGeneratedListing(entry.listing)
-    setAiImprovement(null)
-    setAiStatus('idle')
-    setAiError(null)
-    setActiveVariant('rules')
+    resetAiState()
     setErrors({})
     setCurrentStep(2)
     showFeedback('Annonce rechargée.')
@@ -281,7 +258,7 @@ function App() {
             onCopy={handleCopy}
             onSave={handleSave}
             onImproveWithAi={handleImproveWithAi}
-            onSelectVariant={setActiveVariant}
+            onSelectVariant={(variant) => setActiveVariant(variant)}
             onBackToForm={() => setCurrentStep(1)}
             onOpenHistory={() => setCurrentStep(3)}
           />

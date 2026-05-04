@@ -7,6 +7,8 @@ import type {
   AiProviderClient,
 } from '../types/ai'
 import type { GeneratedListing, ProductFormData } from '../types/listing'
+import { buildFullListingText } from '../utils/listingFormatting'
+import { capitalize, compactText, dedupeList } from '../utils/text'
 
 const runtimeEnv = (import.meta as ImportMeta & {
   env?: Record<string, string | undefined>
@@ -31,12 +33,21 @@ const objectiveSalesLines: Record<ProductFormData['objectif'], string> = {
   premium: 'Annonce plus soignée pour donner davantage envie.',
 }
 
-const capitalize = (value: string) =>
-  value ? value.charAt(0).toUpperCase() + value.slice(1) : value
+type ListingPatch = Partial<{
+  title: string
+  shortDescription: string
+  detailedDescription: string
+  hashtags: string[]
+  photoTips: string[]
+}>
 
-const cleanSentence = (value: string) => value.replace(/\s+/g, ' ').trim()
-
-const dedupeHashtags = (hashtags: string[]) => Array.from(new Set(hashtags)).slice(0, 10)
+type ProviderResponse = {
+  error?: string
+  provider?: AiProvider
+  providerLabel?: string
+  mode?: 'provider'
+  listingPatch?: ListingPatch
+}
 
 const buildImprovedTitle = (
   formData: ProductFormData,
@@ -64,15 +75,15 @@ const buildImprovedTitle = (
     .filter(Boolean)
     .join(' - ')
 
-  return cleanSentence(title)
+  return compactText(title)
 }
 
 const buildImprovedShortDescription = (formData: ProductFormData) => {
   const defectLine = formData.defaut.trim()
-    ? `Défaut signalé : ${cleanSentence(formData.defaut)}.`
+    ? `Défaut signalé : ${compactText(formData.defaut)}.`
     : 'Aucun défaut notable signalé.'
 
-  return cleanSentence(
+  return compactText(
     `${capitalize(formData.typeArticle)} ${formData.marque.trim() || 'sans marque précisée'} en ${formData.couleur}. Taille ${formData.taille}. ${defectLine} ${objectiveSalesLines[formData.objectif]}`,
   )
 }
@@ -84,10 +95,10 @@ const buildImprovedDetailedDescription = (
   const lines = [
     `${capitalize(formData.typeArticle)} ${formData.marque.trim() || 'sans marque précisée'}, taille ${formData.taille}, couleur ${formData.couleur}.`,
     formData.matiere.trim()
-      ? `Matière : ${cleanSentence(formData.matiere)}.`
+      ? `Matière : ${compactText(formData.matiere)}.`
       : 'La matière n’est pas précisée, mais la pièce est décrite avec transparence.',
     formData.defaut.trim()
-      ? `À noter : ${cleanSentence(formData.defaut)}.`
+      ? `À noter : ${compactText(formData.defaut)}.`
       : 'Aucun défaut notable à signaler.',
     `Prix conseillé : ${baseListing.priceEstimate.suggestedMin} € à ${baseListing.priceEstimate.suggestedMax} €.`,
     objectiveSalesLines[formData.objectif],
@@ -105,7 +116,7 @@ const buildImprovedPhotoTips = (
     ? 'Ajoute un gros plan du défaut pour rassurer immédiatement.'
     : 'Ajoute un gros plan du tissu ou des finitions pour inspirer confiance.'
 
-  return Array.from(new Set([...baseListing.photoTips, extraTip])).slice(0, 4)
+  return dedupeList([...baseListing.photoTips, extraTip], 4)
 }
 
 const buildImprovedHashtags = (
@@ -119,31 +130,15 @@ const buildImprovedHashtags = (
     premium: ['#piecetendance', '#dressingselection'],
   }
 
-  return dedupeHashtags([
+  return dedupeList([
     ...baseListing.hashtags,
     ...extrasByObjective[formData.objectif],
-  ])
+  ], 10)
 }
-
-const buildFullText = (listing: GeneratedListing) =>
-  [
-    `Titre : ${listing.title}`,
-    `Description courte : ${listing.shortDescription}`,
-    'Description détaillée :',
-    listing.detailedDescription,
-    `Hashtags : ${listing.hashtags.join(' ')}`,
-    `Prix conseillé : ${listing.priceEstimate.suggestedMin} € - ${listing.priceEstimate.suggestedMax} €`,
-  ].join('\n\n')
 
 const buildProviderListing = (
   request: AiImprovementRequest,
-  patch: Partial<{
-    title: string
-    shortDescription: string
-    detailedDescription: string
-    hashtags: string[]
-    photoTips: string[]
-  }>,
+  patch: ListingPatch,
   providerLabel: string,
 ): GeneratedListing => {
   const title = patch.title?.trim() || request.baseListing.title
@@ -151,8 +146,9 @@ const buildProviderListing = (
     patch.shortDescription?.trim() || request.baseListing.shortDescription
   const detailedDescription =
     patch.detailedDescription?.trim() || request.baseListing.detailedDescription
-  const hashtags = dedupeHashtags(
+  const hashtags = dedupeList(
     patch.hashtags?.length ? patch.hashtags : request.baseListing.hashtags,
+    10,
   )
   const photoTips =
     patch.photoTips && patch.photoTips.length > 0
@@ -172,7 +168,7 @@ const buildProviderListing = (
     hashtags,
     photoTips,
     qualityScore,
-    fullText: buildFullText({
+    fullText: buildFullListingText({
       ...request.baseListing,
       title,
       shortDescription,
@@ -231,7 +227,7 @@ function createImprovedListing({
     hashtags,
     photoTips,
     qualityScore,
-    fullText: buildFullText({
+    fullText: buildFullListingText({
       ...baseListing,
       title,
       shortDescription,
@@ -279,19 +275,7 @@ const remoteProvider: AiProviderClient = {
       }),
     })
 
-    const data = (await response.json()) as {
-      error?: string
-      provider?: AiProvider
-      providerLabel?: string
-      mode?: 'provider'
-      listingPatch?: Partial<{
-        title: string
-        shortDescription: string
-        detailedDescription: string
-        hashtags: string[]
-        photoTips: string[]
-      }>
-    }
+    const data = (await response.json()) as ProviderResponse
 
     if (!response.ok) {
       throw new Error(data.error || "Le service IA n'a pas répondu correctement.")
@@ -312,9 +296,10 @@ const remoteProvider: AiProviderClient = {
 export async function improveListingWithAi(
   request: AiImprovementRequest,
 ): Promise<AiImprovementResult> {
-  const client = AI_MODE === 'simulation' || AI_PROVIDER === 'simulation'
-    ? simulationProvider
-    : remoteProvider
+  const client =
+    AI_MODE === 'simulation' || AI_PROVIDER === 'simulation'
+      ? simulationProvider
+      : remoteProvider
 
   return client.improve(request)
 }
