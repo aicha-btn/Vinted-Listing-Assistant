@@ -4,6 +4,10 @@ Application React + TypeScript créée avec Vite.
 
 Objectif : générer une annonce Vinted complète à partir d’un formulaire produit, puis proposer une amélioration IA optionnelle avec **Google Gemini**, sans remplacer le moteur maison.
 
+## Testez ici !
+
+🔗 https://vintedito.vercel.app/
+
 ## Stack
 
 - React
