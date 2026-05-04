@@ -186,37 +186,56 @@ function App() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <div className="brand-lockup">
-          <span className="brand-mark">V</span>
-          <div>
-            <p className="brand-name">Vinted Listing Assistant</p>
-            <p className="brand-subtitle">Moteur maison + IA optionnelle</p>
+        <div className="topbar-surface">
+          <div className="brand-lockup">
+            <span className="brand-mark">V</span>
+            <div>
+              <p className="brand-name">Vintedito</p>
+              <p className="brand-subtitle">Assistant d'annonces Vinted</p>
+            </div>
           </div>
+          <nav className="topbar-nav" aria-label="Navigation principale">
+            <span className="topbar-link">Générateur</span>
+            <span className="topbar-link">Historique</span>
+            <span className="topbar-badge">Gemini + local</span>
+          </nav>
         </div>
-        <span className="topbar-badge">Version V2</span>
       </header>
 
       <section className="hero-card">
-        <div>
-          <p className="eyebrow">Créer une annonce en 3 étapes</p>
-          <h1>Un parcours plus simple, plus clair, plus rapide.</h1>
+        <div className="hero-copy-block">
+          <p className="eyebrow">Vintedito</p>
+          <h1>Génère une annonce propre, vite, sans te perdre dans l'écran.</h1>
           <p className="hero-copy">
-            Tu remplis ton produit. Tu génères la base. Tu peux ensuite l’améliorer
-            avec l’IA si tu veux.
+            Tu remplis ton produit, tu génères ton annonce, puis tu l'améliores
+            avec Gemini si tu veux. Le tout en 3 étapes simples.
           </p>
+          <div className="hero-pills">
+            <span className="hero-pill">Titre optimisé</span>
+            <span className="hero-pill">Prix conseillé</span>
+            <span className="hero-pill">Historique local</span>
+          </div>
         </div>
-        <div className="hero-stats">
-          <div className="hero-stat">
-            <strong>1</strong>
-            <span>Produit</span>
+        <div className="hero-preview" aria-hidden="true">
+          <div className="hero-preview-bar">
+            <span className="hero-dot" />
+            <span className="hero-dot" />
+            <span className="hero-dot" />
           </div>
-          <div className="hero-stat">
-            <strong>2</strong>
-            <span>Annonce</span>
+          <div className="hero-preview-card">
+            <span className="hero-preview-label">Étape 1</span>
+            <strong>Produit</strong>
+            <p>Les infos essentielles pour lancer l'annonce.</p>
           </div>
-          <div className="hero-stat">
-            <strong>3</strong>
-            <span>Historique</span>
+          <div className="hero-preview-card hero-preview-card-highlight">
+            <span className="hero-preview-label">Étape 2</span>
+            <strong>Annonce</strong>
+            <p>Version maison, copie rapide, amélioration IA.</p>
+          </div>
+          <div className="hero-preview-card">
+            <span className="hero-preview-label">Étape 3</span>
+            <strong>Historique</strong>
+            <p>Recharge et réutilise tes annonces sauvegardées.</p>
           </div>
         </div>
       </section>

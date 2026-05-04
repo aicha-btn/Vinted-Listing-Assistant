@@ -1,4 +1,4 @@
-# Vinted Listing Assistant
+# Vintedito
 
 Application React + TypeScript créée avec Vite.
 
