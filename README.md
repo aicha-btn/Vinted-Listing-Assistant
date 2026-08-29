@@ -1,52 +1,52 @@
 # Vintedito
 
-Application React + TypeScript créée avec Vite.
+A React and TypeScript application created with Vite.
 
-Objectif : générer une annonce Vinted complète à partir d’un formulaire produit, puis proposer une amélioration IA optionnelle avec **Google Gemini**, sans remplacer le moteur maison.
+The goal is to generate a complete Vinted listing from a product form, then optionally improve it with **Google Gemini** without replacing the in-house generation engine.
 
-## Testez ici !
+## Live Demo
 
-🔗 https://vintedito.vercel.app/
+https://vintedito.vercel.app/
 
 ## Stack
 
 - React
 - TypeScript
 - Vite
-- CSS natif
+- Native CSS
 - localStorage
 - Express
 - Gemini API
 
-## Fonctionnalités V1
+## V1 Features
 
-- Formulaire produit simple
-- Génération locale d’annonce
-- Titre, descriptions, hashtags, prix conseillé
-- Conseils photo et checklists
-- Score qualité
-- Historique local avec statuts
+- Simple product form
+- Local listing generation
+- Title, descriptions, hashtags, and suggested price
+- Photo tips and checklists
+- Quality score
+- Local history with statuses
 
-## Fonctionnalités V2
+## V2 Features
 
-- Bouton `✨ Améliorer avec IA`
-- Architecture IA séparée dans `src/services/aiService.ts`
-- Backend local dans `server/index.ts`
-- Gemini réel via backend local
-- Mode simulation encore disponible
-- États `loading`, `erreur`, `succès`
-- Comparaison `version maison` / `version IA`
-- Possibilité de copier ou sauvegarder la version affichée
+- `Improve with AI` action
+- Separate AI architecture in `src/services/aiService.ts`
+- Local backend in `server/index.ts`
+- Real Gemini provider through the local backend
+- Simulation mode still available
+- `loading`, `error`, and `success` states
+- Comparison between the in-house version and the AI version
+- Ability to copy or save the displayed version
 
-## Important
+## Security Notes
 
-- La clé Google reste côté serveur
-- Aucune clé API n’est exposée dans le frontend
-- Le fournisseur réel branché ici est **Google Gemini**
+- The Google key stays server-side.
+- No API key is exposed in the frontend.
+- The real provider connected here is **Google Gemini**.
 
-## Variables d’environnement
+## Environment Variables
 
-Copier `.env.example` en `.env`.
+Copy `.env.example` to `.env`.
 
 ```bash
 VITE_AI_MODE=provider
@@ -57,35 +57,35 @@ GEMINI_API_KEY=
 GEMINI_MODEL=gemini-2.5-flash
 ```
 
-### Explication
+### Explanation
 
 - `VITE_AI_MODE`
-  - `provider` : utilise le backend Gemini
-  - `simulation` : garde le faux mode local
+  - `provider`: uses the Gemini backend
+  - `simulation`: keeps the local fake mode
 - `VITE_AI_PROVIDER`
-  - valeur attendue ici : `gemini`
+  - expected value here: `gemini`
 - `VITE_AI_BACKEND_URL`
-  - vide en local si tu utilises le proxy Vite
+  - empty locally when using the Vite proxy
 - `VITE_AI_MODEL`
-  - réserve frontend
+  - reserved for frontend use
 - `GEMINI_API_KEY`
-  - clé gratuite récupérée dans [Google AI Studio](https://ai.google.dev/aistudio)
-  - variable recommandée par la doc Google
-  - `GOOGLE_API_KEY` est aussi acceptée en local par le serveur comme fallback
+  - free key retrieved from [Google AI Studio](https://ai.google.dev/aistudio)
+  - variable recommended by Google documentation
+  - `GOOGLE_API_KEY` is also accepted locally by the server as a fallback
 - `GEMINI_MODEL`
-  - modèle côté serveur
-  - valeur recommandée : `gemini-2.5-flash`
+  - server-side model
+  - recommended value: `gemini-2.5-flash`
 
-## Commandes utilisées
+## Commands Used
 
-Vérification de l’environnement :
+Environment check:
 
 ```bash
 node -v
 npm -v
 ```
 
-Création du projet :
+Project creation:
 
 ```bash
 npm create vite@latest vinted-listing-assistant -- --template react-ts
@@ -93,29 +93,29 @@ cd vinted-listing-assistant
 npm install
 ```
 
-Lancement :
+Launch:
 
 ```bash
 npm run dev
 ```
 
-Le script `npm run dev` lance :
+The `npm run dev` script starts:
 
-- le client Vite
-- le serveur Gemini local
+- the Vite client
+- the local Gemini server
 
-Vérifications :
+Verification:
 
 ```bash
 npm run lint
 npm run build
 ```
 
-## Installation locale
+## Local Installation
 
 ```bash
-git clone <votre-repo>
-cd vinted-listing-generator/vinted-listing-assistant
+git clone https://github.com/aicha-btn/Vinted-Listing-Assistant.git
+cd Vinted-Listing-Assistant
 npm install
 cp .env.example .env
 npm run dev
@@ -123,12 +123,12 @@ npm run dev
 
 ## Scripts
 
-- `npm run dev` : client + serveur Gemini
-- `npm run dev:client` : frontend seul
-- `npm run dev:server` : backend Gemini seul
-- `npm run build` : build de production
-- `npm run lint` : vérification ESLint
-- `npm run preview` : aperçu du build
+- `npm run dev`: client + Gemini server
+- `npm run dev:client`: frontend only
+- `npm run dev:server`: Gemini backend only
+- `npm run build`: production build
+- `npm run lint`: ESLint check
+- `npm run preview`: preview the production build
 
 ## Structure
 
@@ -161,26 +161,26 @@ server/
   index.ts
 ```
 
-## Fonctionnement
+## Flow
 
-1. Remplir le produit
-2. Générer l’annonce maison
-3. Cliquer sur `✨ Améliorer avec IA`
-4. Le frontend appelle le backend local
-5. Le backend appelle Gemini
-6. Comparer maison / IA
-7. Sauvegarder la version affichée
+1. Fill in the product details.
+2. Generate the in-house listing.
+3. Click `Improve with AI`.
+4. The frontend calls the local backend.
+5. The backend calls Gemini.
+6. Compare the in-house and AI versions.
+7. Save the displayed version.
 
-## Sources officielles Google utilisées
+## Official Google Sources Used
 
-- [Quickstart Gemini API](https://ai.google.dev/gemini-api/docs/quickstart)
+- [Gemini API quickstart](https://ai.google.dev/gemini-api/docs/quickstart)
 - [System instructions](https://ai.google.dev/gemini-api/docs/system-instructions)
-- [Tarifs Gemini API](https://ai.google.dev/pricing)
+- [Gemini API pricing](https://ai.google.dev/pricing)
 
-## Notes sur le gratuit
+## Free Tier Notes
 
-D’après la documentation officielle Google :
+According to Google's official documentation:
 
-- l’API Gemini peut démarrer avec une offre gratuite
-- la clé API se récupère gratuitement dans Google AI Studio
-- l’offre gratuite reste soumise à des quotas et limites qui peuvent évoluer
+- the Gemini API can start with a free tier;
+- the API key can be created for free in Google AI Studio;
+- the free tier remains subject to quotas and limits that may change over time.
