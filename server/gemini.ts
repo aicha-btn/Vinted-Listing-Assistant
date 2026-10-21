@@ -41,9 +41,10 @@ export async function generateGeminiListingPatch(
   ai: GoogleGenAI,
   model: string,
   prompt: ImproveListingRequest['prompt'],
+  timeoutMs = GEMINI_TIMEOUT_MS,
 ): Promise<GeminiListingPatch> {
   const abortController = new AbortController()
-  const timeout = setTimeout(() => abortController.abort(), GEMINI_TIMEOUT_MS)
+  const timeout = setTimeout(() => abortController.abort(), timeoutMs)
 
   try {
     const geminiResponse = await ai.models.generateContent({
