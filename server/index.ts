@@ -1,6 +1,14 @@
 import 'dotenv/config'
 import express from 'express'
+import { rateLimit } from 'express-rate-limit'
 import { GoogleGenAI } from '@google/genai'
+import {
+  generateGeminiListingPatch,
+  GeminiProviderError,
+  GeminiTimeoutError,
+  InvalidGeminiResponseError,
+} from './gemini'
+import { improveListingRequestSchema } from './validation'
 
 const PORT = Number(process.env.PORT ?? 8787)
 const GEMINI_API_KEY =
@@ -9,114 +17,100 @@ const GEMINI_MODEL = process.env.GEMINI_MODEL ?? 'gemini-2.5-flash'
 
 const app = express()
 
-app.use(express.json({ limit: '1mb' }))
+app.use(express.json({ limit: '32kb' }))
 
 const ai = GEMINI_API_KEY ? new GoogleGenAI({ apiKey: GEMINI_API_KEY }) : null
 
-const extractJson = (value: string) => {
-  const trimmedValue = value.trim()
-
-  if (!trimmedValue) {
-    throw new Error('Réponse vide de Gemini.')
-  }
-
-  const fencedMatch = trimmedValue.match(/```json\s*([\s\S]*?)```/i)
-  const rawJson = fencedMatch ? fencedMatch[1].trim() : trimmedValue
-
-  return JSON.parse(rawJson) as {
-    title?: string
-    shortDescription?: string
-    detailedDescription?: string
-    hashtags?: string[]
-    photoTips?: string[]
-  }
-}
-
-app.get('/api/health', (_request, response) => {
-  response.json({
-    ok: true,
-    provider: 'gemini',
-    configured: Boolean(GEMINI_API_KEY),
-    model: GEMINI_MODEL,
-  })
+const improveListingRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1_000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  statusCode: 429,
+  message: { error: 'Trop de requêtes. Réessaie plus tard.' },
 })
 
-app.post('/api/improve-listing', async (request, response) => {
+app.get('/api/health', (_request, response) => {
+  response.json({ status: 'ok' })
+})
+
+app.post('/api/improve-listing', improveListingRateLimit, async (request, response) => {
+  const parsedRequest = improveListingRequestSchema.safeParse(request.body)
+
+  if (!parsedRequest.success) {
+    response.status(400).json({ error: 'Requête invalide.' })
+    return
+  }
+
+  if (!ai) {
+    response.status(503).json({ error: 'Service IA indisponible.' })
+    return
+  }
+
   try {
-    if (!ai) {
-      response.status(500).json({
-        error: 'GEMINI_API_KEY manquante côté serveur.',
-      })
-      return
-    }
-
-    const { prompt, formData, listing } = request.body as {
-      prompt?: { systemPrompt?: string; userPrompt?: string }
-      formData?: Record<string, unknown>
-      listing?: Record<string, unknown>
-    }
-
-    if (!prompt?.systemPrompt || !prompt.userPrompt || !formData || !listing) {
-      response.status(400).json({
-        error: 'Requête IA incomplète.',
-      })
-      return
-    }
-
-    const geminiResponse = await ai.models.generateContent({
-      model: GEMINI_MODEL,
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            {
-              text: [
-                prompt.userPrompt,
-                '',
-                'Retourne uniquement un JSON valide.',
-                'Format attendu :',
-                '{',
-                '  "title": "string",',
-                '  "shortDescription": "string",',
-                '  "detailedDescription": "string",',
-                '  "hashtags": ["#tag1", "#tag2"],',
-                '  "photoTips": ["conseil 1", "conseil 2"]',
-                '}',
-              ].join('\n'),
-            },
-          ],
-        },
-      ],
-      config: {
-        systemInstruction: prompt.systemPrompt,
-        temperature: 0.6,
-      },
-    })
-
-    const text = geminiResponse.text ?? ''
-    const parsed = extractJson(text)
+    const listingPatch = await generateGeminiListingPatch(
+      ai,
+      GEMINI_MODEL,
+      parsedRequest.data.prompt,
+    )
 
     response.json({
       provider: 'gemini',
       providerLabel: `Gemini (${GEMINI_MODEL})`,
       mode: 'provider',
-      listingPatch: {
-        title: parsed.title,
-        shortDescription: parsed.shortDescription,
-        detailedDescription: parsed.detailedDescription,
-        hashtags: Array.isArray(parsed.hashtags) ? parsed.hashtags : [],
-        photoTips: Array.isArray(parsed.photoTips) ? parsed.photoTips : [],
-      },
+      listingPatch,
     })
   } catch (error) {
-    response.status(500).json({
-      error:
-        error instanceof Error
-          ? error.message
-          : "Erreur inconnue lors de l'appel à Gemini.",
-    })
+    const errorType = error instanceof Error ? error.name : 'UnknownError'
+    console.error('Gemini request failed.', { errorType })
+
+    if (error instanceof GeminiTimeoutError) {
+      response.status(504).json({ error: 'Le service IA a mis trop de temps à répondre.' })
+      return
+    }
+
+    if (
+      error instanceof GeminiProviderError ||
+      error instanceof InvalidGeminiResponseError
+    ) {
+      response.status(502).json({ error: 'Le service IA a renvoyé une réponse invalide.' })
+      return
+    }
+
+    response.status(500).json({ error: 'Erreur interne.' })
   }
 })
+
+app.use(
+  (
+    error: unknown,
+    _request: express.Request,
+    response: express.Response,
+    next: express.NextFunction,
+  ) => {
+    if (response.headersSent) {
+      next(error)
+      return
+    }
+
+    const requestError = error as { status?: number; type?: string }
+
+    if (requestError.type === 'entity.too.large' || requestError.status === 413) {
+      response.status(413).json({ error: 'Requête trop volumineuse.' })
+      return
+    }
+
+    if (error instanceof SyntaxError) {
+      response.status(400).json({ error: 'Requête invalide.' })
+      return
+    }
+
+    console.error('Unexpected server error.', {
+      errorType: error instanceof Error ? error.name : 'UnknownError',
+    })
+    response.status(500).json({ error: 'Erreur interne.' })
+  },
+)
 
 app.listen(PORT, '127.0.0.1', () => {
   console.log(`Gemini server ready on http://127.0.0.1:${PORT}`)
