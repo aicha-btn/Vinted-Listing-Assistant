@@ -1,186 +1,142 @@
 # Vintedito
 
-A React and TypeScript application created with Vite.
+[![CI](https://github.com/aicha-btn/Vinted-Listing-Assistant/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/aicha-btn/Vinted-Listing-Assistant/actions/workflows/ci.yml)
 
-The goal is to generate a complete Vinted listing from a product form, then optionally improve it with **Google Gemini** without replacing the in-house generation engine.
+Vintedito is an assistant for creating and improving structured second-hand marketplace listings from product details.
 
-## Live Demo
+**Live demo:** [vintedito.vercel.app](https://vintedito.vercel.app)
 
-https://vintedito.vercel.app/
+The public Vercel demo runs entirely in local simulation mode. The optional Gemini integration uses a separate local Express server; it is not exposed by the public demo.
 
-## Stack
+## Product overview
 
-- React
-- TypeScript
-- Vite
-- Native CSS
-- localStorage
-- Express
-- Gemini API
+Vintedito turns a short product form into a ready-to-edit listing with an optimized title, short and detailed descriptions, normalized hashtags, a heuristic price range, and practical publication guidance. Results can be saved locally, assigned a draft, published, or sold status, and reopened from the browser history.
 
-## V1 Features
+The deterministic listing engine remains the primary path. An optional provider mode can send an already generated listing to Gemini through the server-side API and present the local and improved versions side by side.
 
-- Simple product form
-- Local listing generation
-- Title, descriptions, hashtags, and suggested price
-- Photo tips and checklists
-- Quality score
-- Local history with statuses
+## Key features
 
-## V2 Features
+- Product form with required-field validation and transparent defect reporting
+- Deterministic local generation for titles, descriptions, hashtags, and price estimates
+- Quality score plus photo and publication checklists
+- Accent-normalized hashtags with deduplication and bounded output
+- Browser-local history using `localStorage`, including listing statuses
+- Local-versus-improved listing comparison
+- Optional Gemini improvement through a validated Express API
+- Responsive interface for desktop and mobile use
 
-- `Improve with AI` action
-- Separate AI architecture in `src/services/aiService.ts`
-- Local backend in `server/index.ts`
-- Real Gemini provider through the local backend
-- Simulation mode still available
-- `loading`, `error`, and `success` states
-- Comparison between the in-house version and the AI version
-- Ability to copy or save the displayed version
+## Tech stack
 
-## Security Notes
+- **Frontend:** React 19.2.5, TypeScript 6.0.3, Vite 8.3.5, native CSS
+- **API:** Express 5.2.1, Zod 4.6.7, Google GenAI 1.50.1
+- **Storage:** browser `localStorage`
+- **Testing:** Vitest 5.0.5 and Supertest 7.3.1
+- **Quality:** ESLint 10.2.1 and TypeScript project builds
+- **Delivery:** GitHub Actions and Vercel
 
-- The Google key stays server-side.
-- No API key is exposed in the frontend.
-- The real provider connected here is **Google Gemini**.
+## Architecture
 
-## Environment Variables
+```mermaid
+flowchart LR
+  subgraph Public[Public Vercel demo]
+    Browser[Browser] --> App[React and Vite]
+    App --> Engine[Deterministic listing engine]
+    Engine --> Storage[Browser localStorage]
+  end
 
-Copy `.env.example` to `.env`.
-
-```bash
-VITE_AI_MODE=provider
-VITE_AI_PROVIDER=gemini
-VITE_AI_BACKEND_URL=
-VITE_AI_MODEL=
-GEMINI_API_KEY=
-GEMINI_MODEL=gemini-2.5-flash
+  subgraph Optional[Optional local AI mode]
+    Client[Browser in provider mode] --> API[Express API]
+    API --> Input[Zod request validation]
+    Input --> Limit[Basic in-process rate limiting]
+    Limit --> Gemini[Gemini provider]
+    Gemini --> Output[Zod response validation]
+    Output --> Client
+  end
 ```
 
-### Explanation
+The public Vercel deployment contains the frontend simulation path only; it does not deploy the optional Express/Gemini server.
 
-- `VITE_AI_MODE`
-  - `provider`: uses the Gemini backend
-  - `simulation`: keeps the local fake mode
-- `VITE_AI_PROVIDER`
-  - expected value here: `gemini`
-- `VITE_AI_BACKEND_URL`
-  - empty locally when using the Vite proxy
-- `VITE_AI_MODEL`
-  - reserved for frontend use
-- `GEMINI_API_KEY`
-  - free key retrieved from [Google AI Studio](https://ai.google.dev/aistudio)
-  - variable recommended by Google documentation
-  - `GOOGLE_API_KEY` is also accepted locally by the server as a fallback
-- `GEMINI_MODEL`
-  - server-side model
-  - recommended value: `gemini-2.5-flash`
+## Quality and testing
 
-## Commands Used
+The repository includes **50 deterministic automated tests** covering:
 
-Environment check:
+- listing generation, price estimation, hashtags, scoring, and form validation;
+- browser storage behavior, including missing and corrupted data;
+- Zod request and provider-response schemas;
+- Gemini adapter behavior through mocks, with no real provider calls;
+- Express HTTP behavior for validation, body limits, unavailable configuration, provider failures, timeouts, and rate limiting.
 
-```bash
-node -v
-npm -v
-```
+GitHub Actions runs on every push and pull request targeting `main`. The pipeline performs `npm ci`, tests, linting, type checking, a production build, and an audit gate for critical vulnerabilities. No Gemini key or custom GitHub secret is required for these checks.
 
-Project creation:
+## Security and resilience
 
-```bash
-npm create vite@latest vinted-listing-assistant -- --template react-ts
-cd vinted-listing-assistant
-npm install
-```
+Security controls include strict runtime validation with Zod, a 32 KB JSON body limit, basic in-process IP rate limiting for the optional AI endpoint, a provider timeout, bounded Gemini output, validated provider responses, and generic public error messages. The Gemini API key remains server-side and is never required by the frontend bundle.
 
-Launch:
+The rate limiter is intentionally process-local and is not presented as a distributed abuse-prevention system.
 
-```bash
-npm run dev
-```
+## Getting started
 
-The `npm run dev` script starts:
-
-- the Vite client
-- the local Gemini server
-
-Verification:
-
-```bash
-npm run lint
-npm run build
-```
-
-## Local Installation
+Use Node.js **22.12 or later**.
 
 ```bash
 git clone https://github.com/aicha-btn/Vinted-Listing-Assistant.git
 cd Vinted-Listing-Assistant
 npm install
+```
+
+Run the frontend alone in the default local simulation mode:
+
+```bash
+npm run dev:client
+```
+
+Run the frontend and optional Express server together:
+
+```bash
 cp .env.example .env
 npm run dev
 ```
 
-## Scripts
+The server can also run independently with `npm run dev:server`. A real Gemini request is possible only when provider mode and a valid server-side API key are configured.
 
-- `npm run dev`: client + Gemini server
-- `npm run dev:client`: frontend only
-- `npm run dev:server`: Gemini backend only
-- `npm run build`: production build
-- `npm run lint`: ESLint check
-- `npm run preview`: preview the production build
+Quality commands:
 
-## Structure
-
-```text
-src/
-  components/
-    ProductForm.tsx
-    GeneratedListing.tsx
-    QualityScore.tsx
-    ListingHistory.tsx
-    Checklist.tsx
-    CopyIconButton.tsx
-    StepNavigation.tsx
-  data/
-    templates.ts
-    hashtagRules.ts
-    priceRules.ts
-  services/
-    aiService.ts
-  types/
-    listing.ts
-    ai.ts
-  utils/
-    generateListing.ts
-    generateHashtags.ts
-    calculateScore.ts
-    estimatePrice.ts
-    storage.ts
-server/
-  index.ts
+```bash
+npm test
+npm run lint
+npx tsc --noEmit
+npm run build
 ```
 
-## Flow
+## Environment variables
 
-1. Fill in the product details.
-2. Generate the in-house listing.
-3. Click `Improve with AI`.
-4. The frontend calls the local backend.
-5. The backend calls Gemini.
-6. Compare the in-house and AI versions.
-7. Save the displayed version.
+See [`.env.example`](.env.example) for safe placeholders.
 
-## Official Google Sources Used
+| Variable | Scope | Purpose |
+| --- | --- | --- |
+| `VITE_AI_MODE` | Client | `simulation` by default; use `provider` for the optional API path |
+| `VITE_AI_PROVIDER` | Client | Selects `simulation` or `gemini` |
+| `VITE_AI_BACKEND_URL` | Client | Optional API base URL; empty uses the local Vite proxy |
+| `GEMINI_API_KEY` | Server | Primary Gemini credential |
+| `GOOGLE_API_KEY` | Server | Supported fallback credential |
+| `GEMINI_MODEL` | Server | Optional model override; defaults to `gemini-2.5-flash` |
+| `PORT` | Server | Optional Express port; defaults to `8787` |
 
-- [Gemini API quickstart](https://ai.google.dev/gemini-api/docs/quickstart)
-- [System instructions](https://ai.google.dev/gemini-api/docs/system-instructions)
-- [Gemini API pricing](https://ai.google.dev/pricing)
+Only variables prefixed with `VITE_` are exposed to the client. Never place a provider key in a `VITE_` variable.
 
-## Free Tier Notes
+## Limitations
 
-According to Google's official documentation:
+- The public demo uses deterministic simulation rather than live Gemini.
+- Price estimates are rule-based heuristics, not live marketplace data.
+- Listing history is stored only in the current browser.
+- The application does not upload or analyze images.
 
-- the Gemini API can start with a free tier;
-- the API key can be created for free in Google AI Studio;
-- the free tier remains subject to quotas and limits that may change over time.
+## Deployment
+
+The frontend demo is deployed on Vercel at [vintedito.vercel.app](https://vintedito.vercel.app). The optional Express backend requires a separate server environment and is not part of that deployment.
+
+## License
+
+No explicit open-source license is currently provided.
+
+Vintedito is an independent project and is not affiliated with or endorsed by Vinted.
