@@ -25,6 +25,30 @@ The deterministic listing engine remains the primary path. An optional provider 
 - Optional Gemini improvement through a validated Express API
 - Responsive interface for desktop and mobile use
 
+## Screenshots
+
+All screenshots use fictional demonstration data.
+
+### Generated listing
+
+![Vintedito generated listing with price estimate, quality score and hashtags](docs/screenshots/generated-listing-desktop.png)
+
+*Generated listing with price guidance, quality score and publishing recommendations.*
+
+### Product form
+
+![Vintedito product listing form filled with fictional product data](docs/screenshots/listing-form-desktop.png)
+
+*Structured product input used by the local listing engine.*
+
+### Mobile history
+
+<p align="center">
+  <img src="docs/screenshots/history-mobile.png" alt="Vintedito listing history on mobile" width="320">
+</p>
+
+<p align="center"><em>Responsive local history with listing status tracking.</em></p>
+
 ## Tech stack
 
 - **Frontend:** React 19.2.5, TypeScript 6.0.3, Vite 8.3.5, native CSS
